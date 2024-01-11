@@ -49,3 +49,12 @@ def get_post_by_id(post_id: int):
         if post['id'] == post_id:
             return post
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+
+@app.delete('/posts/{post_id}', status_code=status.HTTP_204_NO_CONTENT)
+def delete_post(post_id: int):
+    for post in data_list:
+        if post['id'] == post_id:
+            data_list.remove(post)
+            return Response(status_code=status.HTTP_204_NO_CONTENT)
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+
