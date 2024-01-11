@@ -13,6 +13,12 @@ class Post(BaseModel):
     Published: bool = True
     Rating: Optional[int] = None
 
+class updatePost(BaseModel):
+    Title: Optional[str] = None
+    Content: Optional[str] = None
+    Published: Optional[bool] = None
+    Rating: Optional[int] = None
+
 # Sample list of dictionaries with 10 items
 data_list = [
     {"id": 1, "title": "Item 1", "content": "This is the content of Item 1."},
@@ -56,5 +62,15 @@ def delete_post(post_id: int):
         if post['id'] == post_id:
             data_list.remove(post)
             return Response(status_code=status.HTTP_204_NO_CONTENT)
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+
+@app.put('/posts/{post_id}', status_code=status.HTTP_202_ACCEPTED)
+def update_post(post_id: int, updated_post: updatePost):
+    for post in data_list:
+        if post['id'] == post_id:
+            # Update only non-None fields
+            for field, value in updated_post.dict(exclude_unset=True).items():
+                post[field.lower()] = value
+            return post
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
 
