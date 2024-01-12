@@ -74,7 +74,6 @@ def delete_post(post_id: int):
 @app.put('/posts/{post_id}', status_code=status.HTTP_202_ACCEPTED)
 def update_post(post_id: int, updated_post: Post):
     try:
-        # Assuming your table name is 'posts'
         cursor.execute("""
             UPDATE posts
             SET title = %s, content = %s, published = %s
