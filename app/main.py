@@ -11,9 +11,9 @@ import time
 app = FastAPI()
 
 class Post(BaseModel):
-    Title: str
-    Content: str
-    Published: bool = True
+    title: str
+    content: str
+    published: bool = True
 
 while True:
     try:
@@ -57,16 +57,23 @@ def get_post():
 
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
 def create_post(post: Post):
-    post_dict = post.dict()
-    post_dict['id'] = randrange(0, 100000000)
-    data_list.append(post_dict)
-    return {"data": post_dict}
+    cursor.execute("""
+        INSERT INTO posts (title, content, published)
+        VALUES (%s, %s, %s) RETURNING *
+    """, (post.title, post.content, post.published))
+    new_post = cursor.fetchone()
+    conn.commit()
+    return {"data": new_post}
+
 
 @app.get("/posts/{post_id}")
 def get_post_by_id(post_id: int):
-    for post in data_list:
-        if post['id'] == post_id:
-            return post
+    cursor.execute("""
+        SELECT * FROM posts WHERE id = %s
+    """, (post_id,))
+    post = cursor.fetchone()
+    if post:
+        return post
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
 
 @app.delete('/posts/{post_id}', status_code=status.HTTP_204_NO_CONTENT)
