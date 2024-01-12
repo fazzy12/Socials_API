@@ -3,6 +3,9 @@ from fastapi.params import Body
 from pydantic import BaseModel
 from typing import Optional
 from random import randrange
+import psycopg2
+from psycopg2.extras import RealDictCursor
+import time
 
 
 app = FastAPI()
@@ -11,13 +14,20 @@ class Post(BaseModel):
     Title: str
     Content: str
     Published: bool = True
-    Rating: Optional[int] = None
 
-class updatePost(BaseModel):
-    Title: Optional[str] = None
-    Content: Optional[str] = None
-    Published: Optional[bool] = None
-    Rating: Optional[int] = None
+while True:
+    try:
+        conn = psycopg2.connect(host='localhost',
+                                database='socialsapi',
+                                user='postgres',
+                                password='virgin123',
+                                cursor_factory=RealDictCursor)
+        cursor = conn.cursor()
+        print('Created connection to database')
+        break
+    except Exception as e:
+        print('Error: ', e)
+        time.sleep(2)
 
 # Sample list of dictionaries with 10 items
 data_list = [
@@ -40,7 +50,10 @@ def root():
 
 @app.get('/posts')
 def get_post():
-    return {'post': data_list}
+    cursor.execute("""SELECT * FROM posts""")
+    posts = cursor.fetchall()
+    print(posts)
+    return {'post': posts}
 
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
 def create_post(post: Post):
@@ -65,7 +78,7 @@ def delete_post(post_id: int):
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
 
 @app.put('/posts/{post_id}', status_code=status.HTTP_202_ACCEPTED)
-def update_post(post_id: int, updated_post: updatePost):
+def update_post(post_id: int, updated_post: Post):
     for post in data_list:
         if post['id'] == post_id:
             # Update only non-None fields
