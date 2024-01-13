@@ -1,9 +1,14 @@
-from fastapi import FastAPI, Response, status, HTTPException
+from fastapi import FastAPI, Response, status, HTTPException, Depends
 from pydantic import BaseModel
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import time
+from .database import engine, get_db
+from sqlalchemy.orm import Session
+from . import models
 
+
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
@@ -31,20 +36,17 @@ def root():
     return {"message": "Hello World"}
 
 @app.get('/posts')
-def get_post():
-    cursor.execute("""SELECT * FROM posts""")
-    posts = cursor.fetchall()
-    print(posts)
+def get_post(db: Session = Depends(get_db)):
+    posts = db.querry(models.Post).all
     return {'post': posts}
 
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
-def create_post(post: Post):
-    cursor.execute("""
-        INSERT INTO posts (title, content, published)
-        VALUES (%s, %s, %s) RETURNING *
-    """, (post.title, post.content, post.published))
-    new_post = cursor.fetchone()
-    conn.commit()
+def create_post(post: Post, db: Session = Depends(get_db)):
+    post_dict = post.dict()
+    new_post = models.Post(**post_dict)
+    db.add(new_post)
+    db.commit()
+    db.refresh(new_post)
     return {"data": new_post}
 
 
