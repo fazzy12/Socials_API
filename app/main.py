@@ -12,10 +12,12 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+
 class Post(BaseModel):
     title: str
     content: str
     published: bool = True
+
 
 while True:
     try:
@@ -31,14 +33,17 @@ while True:
         print('Error: ', e)
         time.sleep(2)
 
+
 @app.get("/")
 def root():
     return {"message": "Hello World"}
+
 
 @app.get('/posts')
 def get_post(db: Session = Depends(get_db)):
     posts = db.querry(models.Post).all
     return {'post': posts}
+
 
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
 def create_post(post: Post, db: Session = Depends(get_db)):
@@ -50,26 +55,25 @@ def create_post(post: Post, db: Session = Depends(get_db)):
 
 
 @app.get("/posts/{post_id}")
-def get_post_by_id(post_id: int):
-    cursor.execute("""
-        SELECT * FROM posts WHERE id = %s
-    """, (str(post_id),))
-    post = cursor.fetchone()
+def get_post_by_id(post_id: int, db: Session = Depends(get_db)):
+    post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if post:
         return post
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+
 
 @app.delete('/posts/{post_id}', status_code=status.HTTP_204_NO_CONTENT)
-def delete_post(post_id: int):
-    cursor.execute("""
-        DELETE FROM posts WHERE id = %s
-    RETURNING * """, (str(post_id),))
-    deleted_post = cursor.fetchone()
-    conn.commit()
-
-    if deleted_post == None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+def delete_post(post_id: int, db: Session = Depends(get_db)):
+    post = db.query(models.Post).filter(models.Post.id == post_id).first()
+    if post:
+        db.delete(post)
+        db.commit()
+        return 'done'
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
 
 
 @app.put('/posts/{post_id}', status_code=status.HTTP_202_ACCEPTED)
@@ -88,7 +92,9 @@ def update_post(post_id: int, updated_post: Post):
         if post:
             return post
         else:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
 
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
