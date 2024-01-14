@@ -42,8 +42,7 @@ def get_post(db: Session = Depends(get_db)):
 
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
 def create_post(post: Post, db: Session = Depends(get_db)):
-    post_dict = post.dict()
-    new_post = models.Post(**post_dict)
+    new_post = models.Post(**post.dict())
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
