@@ -5,18 +5,12 @@ from psycopg2.extras import RealDictCursor
 import time
 from .database import engine, get_db
 from sqlalchemy.orm import Session
-from . import models
+from . import models, schemas
 
 
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-
-
-class Post(BaseModel):
-    title: str
-    content: str
-    published: bool = True
 
 
 while True:
@@ -46,7 +40,7 @@ def get_post(db: Session = Depends(get_db)):
 
 
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
-def create_post(post: Post, db: Session = Depends(get_db)):
+def create_post(post: schemas.Post, db: Session = Depends(get_db)):
     new_post = models.Post(**post.dict())
     db.add(new_post)
     db.commit()
@@ -77,24 +71,15 @@ def delete_post(post_id: int, db: Session = Depends(get_db)):
 
 
 @app.put('/posts/{post_id}', status_code=status.HTTP_202_ACCEPTED)
-def update_post(post_id: int, updated_post: Post):
-    try:
-        cursor.execute("""
-            UPDATE posts
-            SET title = %s, content = %s, published = %s
-            WHERE id = %s
-            RETURNING *
-        """, (updated_post.title, updated_post.content, updated_post.published, post_id))
-        conn.commit()
-
-        post = cursor.fetchone()
-
-        if post:
-            return post
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
-
-    except Exception as e:
+def update_post(post_id: int, updated_post: schemas.PostCreate, db: Session = Depends(get_db)):
+    post = db.query(models.Post).filter(models.Post.id == post_id).first()
+    if post:
+        post.title = updated_post.title
+        post.content = updated_post.content
+        post.published = updated_post.published
+        db.commit()
+        db.refresh(post)
+        return post
+    else:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+            status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
