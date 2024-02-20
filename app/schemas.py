@@ -6,6 +6,13 @@ class PostBase(BaseModel):
     published: bool = True
 
 
-
-class PostCreate(BaseModel):
+class PostCreate(PostBase):
     pass
+
+class Post(BaseModel):
+    title: str
+    content: str
+    published: bool
+
+    class Config():
+        from_attributes = True

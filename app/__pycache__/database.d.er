@@ -1,0 +1,12 @@
+##[pylyzer] failed /home/fazzy/Socials_API/app/database.py 1705163507 466
+.___v_desugar_1 = pyimport "sqlalchemy"
+.create_engine: Never
+.___v_desugar_2 = pyimport "(...)"
+.declarative_base: Never
+.___v_desugar_3 = pyimport "sqlalchemy/orm"
+.sessionmaker: Never
+.SQLALCHEMY_DATABASE_URL: {"postgresql://postgres:virgin123@localhost/socialsapi"}
+.engine: Never
+.sessionlocal: Never
+.Base: Never
+.get_db: () -> Never

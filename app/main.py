@@ -1,5 +1,4 @@
 from fastapi import FastAPI, Response, status, HTTPException, Depends
-from pydantic import BaseModel
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import time
@@ -35,17 +34,18 @@ def root():
 
 @app.get('/posts')
 def get_post(db: Session = Depends(get_db)):
-    posts = db.querry(models.Post).all
-    return {'post': posts}
+    posts = db.query(models.Post).all()
+    return posts
 
 
-@app.post("/posts", status_code=status.HTTP_201_CREATED)
-def create_post(post: schemas.Post, db: Session = Depends(get_db)):
+@app.post("/posts", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
+def create_post(post: schemas.PostCreate, db: Session = Depends(get_db)):
+    print("Received post data:", post.dict())
     new_post = models.Post(**post.dict())
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
-    return {"data": new_post}
+    return new_post
 
 
 @app.get("/posts/{post_id}")
