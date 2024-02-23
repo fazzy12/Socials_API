@@ -1,10 +1,11 @@
 from fastapi import FastAPI, Response, status, HTTPException, Depends
 import psycopg2
+from typing import Optional, List
 from psycopg2.extras import RealDictCursor
 import time
 from .database import engine, get_db
 from sqlalchemy.orm import Session
-from . import models, schemas
+from . import models, schemas, utils
 
 
 models.Base.metadata.create_all(bind=engine)
@@ -32,8 +33,8 @@ def root():
     return {"message": "Hello World"}
 
 
-@app.get('/posts')
-def get_post(db: Session = Depends(get_db)):
+@app.get('/posts', response_model=List[schemas.Post])
+def get_posts(db: Session = Depends(get_db)):
     posts = db.query(models.Post).all()
     return posts
 
@@ -48,7 +49,7 @@ def create_post(post: schemas.PostCreate, db: Session = Depends(get_db)):
     return new_post
 
 
-@app.get("/posts/{post_id}")
+@app.get("/posts/{post_id}", response_model=schemas.Post)
 def get_post_by_id(post_id: int, db: Session = Depends(get_db)):
     post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if post:
@@ -70,7 +71,7 @@ def delete_post(post_id: int, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
 
 
-@app.put('/posts/{post_id}', status_code=status.HTTP_202_ACCEPTED)
+@app.put('/posts/{post_id}', status_code=status.HTTP_202_ACCEPTED, response_model=schemas.Post)
 def update_post(post_id: int, updated_post: schemas.PostCreate, db: Session = Depends(get_db)):
     post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if post:
@@ -83,3 +84,17 @@ def update_post(post_id: int, updated_post: schemas.PostCreate, db: Session = De
     else:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+
+
+@app.post("/users", status_code=status.HTTP_201_CREATED, response_model=schemas.UserView)
+def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+
+    masked_password =utils.hash(user.password)
+    user.password = masked_password
+
+    new_user = models.Users(**user.dict())
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return new_user
