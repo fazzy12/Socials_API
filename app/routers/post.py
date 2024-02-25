@@ -5,7 +5,8 @@ from typing import List
 from ..database import get_db
 
 router = APIRouter(
-    prefix="/posts"
+    prefix="/posts",
+    tags=["posts"]
 )
 
 @router.get('/', response_model=List[schemas.Post])
